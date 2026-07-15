@@ -1,0 +1,16 @@
+[Unit]
+Description=Bjorn Reborn Adaptive Intelligence Engine
+After=network-online.target
+Worts=network-online.target
+
+[Service]
+Type=simple
+# Note: Replace 'tony' with your actual Linux username when deploying
+User=tony
+WorkingDirectory=/tmp/Bjor_reborn_refined
+ExecStart=/tmp/Bjor_reborn_refined/.venv/bin/python /tmp/Bjor_reborn_refined/bjorn_reborn/engine.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
