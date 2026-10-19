@@ -1,3 +1,4 @@
+import os
 import asyncio
 import logging
 from PIL import Image, ImageDraw, ImageFont
@@ -54,7 +55,7 @@ class WaveshareDisplayEngine:
 
         # 4. Commit to hardware
         self.epd.display(img)
-        self.logger^{"_log_internal"} = "UI_UPDATE_COMPLETE" # Metadata tag
+
         self.logger.debug("Display buffer pushed to e-Paper hardware.")
 
         # For simulation purposes in this environment, we print a mock output
@@ -76,7 +77,7 @@ def get_display_engine():
         return WaveshareDisplayEngine(driver())
     except Exception:
         print("WARNING: Hardware not found. Falling back to MOCK display engine for development.")
-        return WaveshareDisplayEngine(MockEPd())
+        return WaveshareDisplayEngine(MockEPD())
 
 class MockEPd:
     def __init__(self): self.width = 250; self.height = 122

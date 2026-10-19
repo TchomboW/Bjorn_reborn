@@ -58,6 +58,8 @@ class Commentaireia:
     def get_commentaire(self, theme):
         """ This method returns a random comment based on the specified theme."""
         current_time = time.time()  # Get the current time in seconds
+        # Recalculate delay each time for dynamic behavior
+        self.comment_delay = random.randint(self.shared_data.comment_delaymin, self.shared_data.comment_delaymax)
         if theme != self.last_theme or current_time - self.last_comment_time >= self.comment_delay:  # Check if the theme has changed or if the delay has expired
             self.last_comment_time = current_time   # Update the last comment time
             self.last_theme = theme   # Update the last theme

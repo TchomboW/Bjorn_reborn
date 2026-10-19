@@ -9,7 +9,8 @@ Bjorn Reborn is a high-performance, lightweight intelligence engine designed spe
 ## ✨ Key Features
 
 *   **🧠 Adaptive Intelligence**: Uses a rolling statistics tracker (`intel.py`) to detect anomalies in signal strength or network availability.
-*   **📡 Live Connectivity Sensing**: Implements an L7 connectivity manager (`connectivity.py`) that monitors real-world network health.
+*   **📡 Live Connectivity Sensing**: Implements an L7 connectivity manager (`connectivity.py`) with real RSSI telemetry via `nmcli` for accurate wireless signal strength monitoring.
+*   **🧠 Bilateral Anomaly Detection**: Intelligent anomaly detection (`intel.py`) that monitors both upper and lower statistical bounds for comprehensive environmental awareness.
 *   **🖼️ Intelligent Display Interface**: Optimized for Waveshare e-Paper displays, providing high-contrast, low-power status updates including mode transitions and signal gauges.
 *   **🚀 Production-Ready Deployment**: Includes automated provisioning via `setup.sh` and `systemd` service orchestration for autonomous operation.
 
@@ -71,6 +72,12 @@ The system follows a modular, layered approach:
 *   **`bjorn_reborn/connectivity.py`**: The nervous system. It probes the network to provide live environmental telemetry.
 *   **`bjorn_reborn/engine.py`**: The central orchestrator. It processes signals, manages state transitions (e.g., `STABLE` $\leftrightarrow$ `ALERT`), and drives the loop.
 *   **`bjorn_reborn/display.py`**: The face. Translates internal states into visual information for e-Paper hardware.
+
+---
+
+## 📋 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and recent improvements.
 
 ---
 

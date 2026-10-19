@@ -115,7 +115,7 @@ class SharedData:
             "__title_Bjorn__": "Settings",
             "manual_mode": False,
             "websrv": True,
-            "web_increment ": False,
+            "web_increment": False,
             "debug_mode": True,
             "scan_vuln_running": False,
             "retry_success_actions": False,
@@ -248,7 +248,6 @@ class SharedData:
             logger.info("Initializing EPD display...")
             time.sleep(1)
             self.epd_helper = EPDHelper(self.config["epd_type"])
-            self.epd_helper = EPDHelper(self.epd_type)
             if self.config["epd_type"] == "epd2in7":
                 logger.info("EPD type: epd2in7 screen reversed")
                 self.screen_reversed = False
@@ -288,8 +287,8 @@ class SharedData:
         self.bjornorch_status = "IDLE"
         self.bjornstatustext = "IDLE"
         self.bjornstatustext2 = "Awakening..."
-        self.scale_factor_x = self.width / self.ref_width
-        self.scale_factor_y = self.height / self.ref_height
+        self.scale_factor_x = getattr(self, 'width', 122) / getattr(self, 'ref_width', 122)
+        self.scale_factor_y = getattr(self, 'height', 250) / getattr(self, 'ref_height', 250)
         self.text_frame_top = int(88 * self.scale_factor_x)
         self.text_frame_bottom = int(159 * self.scale_factor_y)
         self.y_text = self.text_frame_top + 2
@@ -607,9 +606,22 @@ class SharedData:
             words = text.split()
             while words:
                 line = ''
-                while words and font.getlength(line + words[0]) <= max_width:
-                    line = line + (words.pop(0) + ' ')
-                lines.append(line)
+                while words:
+                    test_line = line + words[0] + ' ' if line else words[0]
+                    # Use getlength for Pillow >= 2.9.0 (getsize is deprecated)
+                    try:
+                        bbox = font.getbbox(test_line.rstrip())
+                        text_width = bbox[2] - bbox[0]
+                    except AttributeError:
+                        text_width = font.getlength(test_line.rstrip())
+                    if text_width <= max_width:
+                        line = test_line
+                        words.pop(0)
+                    else:
+                        break
+                if not line:
+                    line = words.pop(0) + ' '
+                lines.append(line.rstrip())
             return lines
         except Exception as e:
             logger.error(f"Error wrapping text: {e}")

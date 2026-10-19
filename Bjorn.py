@@ -37,6 +37,7 @@ class Bjorn:
         self.commentaire_ia = Commentaireia()
         self.orchestrator_thread = None
         self.orchestrator = None
+        self.wifi_connected = False
 
     def run(self):
         """Main loop for Bjorn. Waits for Wi-Fi connection and starts Orchestrator."""
@@ -84,10 +85,12 @@ class Bjorn:
         """Stop the orchestrator thread."""
         self.shared_data.manual_mode = True
         logger.info("Stop button pressed. Manual mode activated & Stopping Orchestrator...")
+        self.shared_data.orchestrator_should_exit = True
         if self.orchestrator_thread is not None and self.orchestrator_thread.is_alive():
             logger.info("Stopping Orchestrator thread...")
-            self.shared_data.orchestrator_should_exit = True
-            self.orchestrator_thread.join()
+            self.orchestrator_thread.join(timeout=10)
+            if self.orchestrator_thread.is_alive():
+                logger.warning("Orchestrator thread did not stop within 10s, continuing shutdown.")
             logger.info("Orchestrator thread stopped.")
             self.shared_data.bjornorch_status = "IDLE"
             self.shared_data.bjornstatustext2 = ""
@@ -145,8 +148,11 @@ if __name__ == "__main__":
         bjorn_thread = threading.Thread(target=bjorn.run)
         bjorn_thread.start()
 
+        web_thread = None
         if shared_data.config["websrv"]:
             logger.info("Starting the web server...")
+            from webapp import WebThread
+            web_thread = WebThread(port=8000)
             web_thread.start()
 
         signal.signal(signal.SIGINT, lambda sig, frame: handle_exit(sig, frame, display_thread, bjorn_thread, web_thread))

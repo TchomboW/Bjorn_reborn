@@ -61,7 +61,10 @@ log "Installing intelligence stack (this may take a few minutes)..."
 
 # Using the venv pip directly to avoid activation issues in scripts
 ./.venv/bin/pip install --upgrade pip
-./.venv/bin/pip install pil numpy asyncio  # Core Bjorn dependencies
+./.venv/bin/pip install "Pillow>=10.3.0" numpy  # pillow replaces pil; numpy for data processing
+
+# Additional required dependencies
+./.venv/bin/pip install bettercap-client  # For bettercap integration
 
 success "Dependency installation complete."
 
@@ -110,5 +113,5 @@ fi
 echo -e "${BLUE}=============================================="
 echo -e "       DEPLOYMENT PREPARED SUCCESSFULLY      "
 echo -e "==============================================${NC}"
-echo -e "${GREEN}Final Step:${NC} Run: ${YELLOW}sudo mv bjorn_worker.service /etc/system-d/system/bjorn.service${NC}"
+echo -e "${GREEN}Final Step:${NC} Run: ${YELLOW}sudo mv bjorn_worker.service /etc/systemd/system/bjorn.service${NC}"
 echo -e "${GREEN}Then run:${NC} ${YELLOW}sudo systemctl start bjorn${NC}"

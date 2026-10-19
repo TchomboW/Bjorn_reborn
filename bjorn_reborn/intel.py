@@ -31,9 +31,11 @@ class StatisticsTracker:
         return math.sqrt(variance)
 
     def is_anomaly(self, value: float, k: float = 3.0) -> bool:
-        if len(self.history) < 5:  # Minimum samples for statistical significance
+        """Check if value is an anomaly (either upper or lower bound)."""
+        if len(self.history) < 5:
             return False
         mu = self.mean
         sigma = self.std_dev
-        threshold = mu + (k * sigma)
-        return value > threshold
+        if sigma == 0:
+            return False
+        return abs(value - mu) > (k * sigma)

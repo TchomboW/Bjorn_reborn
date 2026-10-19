@@ -65,25 +65,26 @@ class Logger:
         vertical_filter = VerticalFilter()
         console_handler.addFilter(vertical_filter)
 
-        # Add console handler to the logger
-        self.logger.addHandler(console_handler)
+        # Prevent handler accumulation: only add handlers if none exist
+        if not self.logger.handlers:
+            self.logger.addHandler(console_handler)
 
-        if self.enable_file_logging:
-            # Ensure the log folder exists
-            os.makedirs(self.LOGS_DIR, exist_ok=True)
-            log_file_path = os.path.join(self.LOGS_DIR, f"{name}.log")
+            if self.enable_file_logging:
+                # Ensure the log folder exists
+                os.makedirs(self.LOGS_DIR, exist_ok=True)
+                log_file_path = os.path.join(self.LOGS_DIR, f"{name}.log")
 
-            # Create file handler and set level
-            file_handler = RotatingFileHandler(log_file_path, maxBytes=5*1024*1024, backupCount=2)
-            file_handler.setLevel(level)
-            file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-            file_handler.setFormatter(file_formatter)
+                # Create file handler and set level
+                file_handler = RotatingFileHandler(log_file_path, maxBytes=5*1024*1024, backupCount=2)
+                file_handler.setLevel(level)
+                file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+                file_handler.setFormatter(file_formatter)
 
-            # Add filter to file handler
-            file_handler.addFilter(vertical_filter)
+                # Add filter to file handler
+                file_handler.addFilter(vertical_filter)
 
-            # Add file handler to the logger
-            self.logger.addHandler(file_handler)
+                # Add file handler to the logger
+                self.logger.addHandler(file_handler)
     
     def set_level(self, level):
         self.logger.setLevel(level)
