@@ -15,7 +15,6 @@
 import threading
 import time
 import os
-import pandas as pd
 import signal
 import glob
 import logging
@@ -124,41 +123,50 @@ class Display:
         with self.semaphore:
             try:
                 if not os.path.exists(self.shared_data.vuln_summary_file):
-                    df = pd.DataFrame(columns=["IP", "Hostname", "MAC Address", "Port", "Vulnerabilities"])
-                    df.to_csv(self.shared_data.vuln_summary_file, index=False)
+                    import csv
+                    with open(self.shared_data.vuln_summary_file, 'w', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(["IP", "Hostname", "MAC Address", "Port", "Vulnerabilities"])
                     self.shared_data.vulnnbr = 0
                     logger.info("Vulnerability summary file created.")
                 else:
                     if os.path.exists(self.shared_data.netkbfile):
+                        import csv
+                        alive_macs = set()
                         with open(self.shared_data.netkbfile, 'r') as file:
-                            netkb_df = pd.read_csv(file)
-                            alive_macs = set(netkb_df[(netkb_df["Alive"] == 1) & (netkb_df["MAC Address"] != "STANDALONE")]["MAC Address"])
+                            reader = csv.DictReader(file)
+                            for row in reader:
+                                if row.get("Alive") == '1' and row.get("MAC Address") != "STANDALONE":
+                                    alive_macs.add(row["MAC Address"])
                     else:
                         alive_macs = set()
 
+                    import csv
                     with open(self.shared_data.vuln_summary_file, 'r') as file:
-                        df = pd.read_csv(file)
+                        reader = csv.DictReader(file)
                         all_vulnerabilities = set()
-
-                        for index, row in df.iterrows():
-                            mac_address = row["MAC Address"]
+                        for row in reader:
+                            mac_address = row.get("MAC Address", "")
                             if mac_address in alive_macs and mac_address != "STANDALONE":
-                                vulnerabilities = row["Vulnerabilities"]
-                                if pd.isna(vulnerabilities) or not isinstance(vulnerabilities, str):
+                                vulnerabilities = row.get("Vulnerabilities", "")
+                                if not vulnerabilities or not isinstance(vulnerabilities, str):
                                     continue
-
-                                if vulnerabilities and isinstance(vulnerabilities, str):
-                                    all_vulnerabilities.update(vulnerabilities.split("; "))
+                                all_vulnerabilities.update(vulnerabilities.split("; "))
 
                         self.shared_data.vulnnbr = len(all_vulnerabilities)
                         logger.debug(f"Updated vulnerabilities count: {self.shared_data.vulnnbr}")
 
                     if os.path.exists(self.shared_data.livestatusfile):
-                        with open(self.shared_data.livestatusfile, 'r+') as livestatus_file:
-                            livestatus_df = pd.read_csv(livestatus_file)
-                            livestatus_df.loc[0, 'Vulnerabilities Count'] = self.shared_data.vulnnbr
-                            livestatus_df.to_csv(self.shared_data.livestatusfile, index=False)
-                            logger.debug(f"Updated livestatusfile with vulnerability count: {self.shared_data.vulnnbr}")
+                        import csv
+                        with open(self.shared_data.livestatusfile, 'r') as liv:
+                            rows = list(csv.DictReader(liv))
+                        if rows:
+                            rows[0]['Vulnerabilities Count'] = self.shared_data.vulnnbr
+                            with open(self.shared_data.livestatusfile, 'w', newline='') as liv:
+                                writer = csv.DictWriter(liv, fieldnames=rows[0].keys())
+                                writer.writeheader()
+                                writer.writerows(rows)
+                        logger.debug(f"Updated livestatusfile with vulnerability count: {self.shared_data.vulnnbr}")
                     else:
                         logger.error(f"Livestatusfile {self.shared_data.livestatusfile} does not exist.")
             except Exception as e:
@@ -168,19 +176,21 @@ class Display:
         """Update the shared data with the latest system information."""
         with self.semaphore:
             try:
+                import csv
                 with open(self.shared_data.livestatusfile, 'r') as file:
-                    livestatus_df = pd.read_csv(file)
-                    self.shared_data.portnbr = livestatus_df['Total Open Ports'].iloc[0]
-                    self.shared_data.targetnbr = livestatus_df['Alive Hosts Count'].iloc[0]
-                    self.shared_data.networkkbnbr = livestatus_df['All Known Hosts Count'].iloc[0]
-                    self.shared_data.vulnnbr = livestatus_df['Vulnerabilities Count'].iloc[0]
+                    rows = list(csv.DictReader(file))
+                if rows:
+                    self.shared_data.portnbr = int(rows[0].get('Total Open Ports', 0))
+                    self.shared_data.targetnbr = int(rows[0].get('Alive Hosts Count', 0))
+                    self.shared_data.networkkbnbr = int(rows[0].get('All Known Hosts Count', 0))
+                    self.shared_data.vulnnbr = int(rows[0].get('Vulnerabilities Count', 0))
 
                 crackedpw_files = glob.glob(f"{self.shared_data.crackedpwddir}/*.csv")
 
                 total_passwords = 0
                 for file in crackedpw_files:
                     with open(file, 'r') as f:
-                        total_passwords += len(pd.read_csv(f, usecols=[0]))
+                        total_passwords += sum(1 for _ in f) - 1  # Subtract header
 
                 self.shared_data.crednbr = total_passwords
 

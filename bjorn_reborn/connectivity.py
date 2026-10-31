@@ -63,14 +63,16 @@ class SmartConnectivityManager:
         if not path:
             return 0.0
 
-        # Calculate real RSSI-based telemetry using nmcli
+        # Calculate real RSSI-based telemetry using nmcli (non-blocking)
         try:
-            result = subprocess.run(
-                ['nmcli', '-t', '-f', 'strength', 'dev', 'wifi'],
-                capture_output=True, text=True, timeout=5
+            proc = await asyncio.create_subprocess_exec(
+                'nmcli', '-t', '-f', 'strength', 'dev', 'wifi',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
             )
-            if result.returncode == 0 and result.stdout.strip():
-                signal_pct = float(result.stdout.strip())
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=5.0)
+            if proc.returncode == 0 and stdout.strip():
+                signal_pct = float(stdout.decode().strip())
                 return signal_pct
         except Exception:
             pass
