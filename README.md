@@ -2,16 +2,17 @@
 
 **An Adaptive Intelligence Orchestrator for Raspberry Pi Zero W.**
 
-Bjorn Reborn is a high-performance, lightweight intelligence engine designed specifically for the Raspberry Pi Zero W ecosystem. Optimized for **Raspberry Pi OS (64-bit)**, it leverages adaptive statistical analysis to detect environmental changes and provides real-time telemetry through e-Paper display interfaces.
+Bjorn Reborn is a high-performance, lightweight intelligence engine designed specifically for the Raspberry Pi Zero W ecosystem. Optimized for **Raspberry Pi OS (64-bit)**, it leverages adaptive statistical analysis to detect environmental changes and provides real-time telemetry through e-Paper and web dashboards.
 
 ---
 
 ## ✨ Key Features
 
 *   **🧠 Adaptive Intelligence**: Uses a rolling statistics tracker (`intel.py`) to detect anomalies in signal strength or network availability.
-*   **📡 Live Connectivity Sensing**: Implements an L7 connectivity manager (`connectivity.py`) with real RSSI telemetry via `nmcli` for accurate wireless signal strength monitoring.
+*   **📡 Live Connectivity Sensing**: Implements an **asynchronous** L7 connectivity manager (`connectivity.py`) with real RSSI telemetry via `nmcli` (non-blocking event loop).
 *   **🧠 Bilateral Anomaly Detection**: Intelligent anomaly detection (`intel.py`) that monitors both upper and lower statistical bounds for comprehensive environmental awareness.
 *   **🖼️ Intelligent Display Interface**: Optimized for Waveshare e-Paper displays, providing high-contrast, low-power status updates including mode transitions and signal gauges.
+*   **💾 Lightweight Data Management**: Replaced heavy `pandas` dependencies with the standard library `csv` module for reduced RAM usage on the Pi Zero W.
 *   **🚀 Production-Ready Deployment**: Includes automated provisioning via `setup.sh` and `systemd` service orchestration for autonomous operation.
 
 ---
@@ -66,12 +67,13 @@ journalctl -u bjorn -f
 
 ## 🏗️ Architecture Overview
 
-The system follows a modular, layered approach:
+The system follows a modular, event-driven approach decoupled for maximum stability:
 
 *   **`bjorn_reborn/intel.py`**: The statistical brain. It tracks observations and calculates real-time anomalies.
-*   **`bjorn_reborn/connectivity.py`**: The nervous system. It probes the network to provide live environmental telemetry.
-*   **`bjorn_reborn/engine.py`**: The central orchestrator. It processes signals, manages state transitions (e.g., `STABLE` $\leftrightarrow$ `ALERT`), and drives the loop.
-*   **`bjorn_reborn/display.py`**: The face. Translates internal states into visual information for e-Paper hardware.
+*   **`bjorn_reborn/connectivity.py`**: The nervous system. It probes the network asynchronously to provide live environmental telemetry.
+*   **`bjorn_reborn/engine.py`**: The state machine. It processes signals, manages state transitions (e.g., `STABLE` $\leftrightarrow$ `ALERT`), and drives the loop.
+*   **`orchestrator.py`**: The action scheduler. It listens for events from `engine.py` and dispatches actions (scanning, credential testing) without blocking the UI loop.
+*   **`display.py`**: The face. Translates internal states into visual information for e-Paper hardware using lightweight CSV parsing.
 
 ---
 
