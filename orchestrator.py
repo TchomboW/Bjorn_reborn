@@ -20,6 +20,7 @@ import time
 import logging
 import sys
 import threading
+import asyncio
 import concurrent.futures
 self.loop = asyncio.get_event_loop()
 from datetime import datetime, timedelta
@@ -167,7 +168,10 @@ class Orchestrator:
         try:
             logger.info(f"Executing action {action.action_name} for {ip}:{action.port}")
             self.shared_data.bjornstatustext2 = ip
-            result = action.execute(ip, str(action.port), row, action_key)
+            loop = asyncio.get_event_loop()
+            result = loop.run_in_executor(
+                None, action.execute, ip, str(action.port), row, action_key
+            )
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             if result == 'success':
                 row[action_key] = f'success_{timestamp}'
@@ -228,7 +232,10 @@ class Orchestrator:
 
         try:
             logger.info(f"Executing standalone action {action.action_name}")
-            result = action.execute()
+            loop = asyncio.get_event_loop()
+            result = loop.run_in_executor(
+                None, action.execute
+            )
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             if result == 'success':
                 row[action_key] = f'success_{timestamp}'
