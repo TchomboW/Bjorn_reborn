@@ -274,6 +274,7 @@ class SharedData:
     def initialize_variables(self):
         """Initialize the variables."""
         self.should_exit = False
+        self.low_memory_mode = False
         self.display_should_exit = False
         self.orchestrator_should_exit = False 
         self.webapp_should_exit = False 

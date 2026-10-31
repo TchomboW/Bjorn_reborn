@@ -22,6 +22,7 @@ import sys
 import threading
 import asyncio
 import concurrent.futures
+import psutil
 self.loop = asyncio.get_event_loop()
 from datetime import datetime, timedelta
 from actions.nmap_vuln_scanner import NmapVulnScanner
@@ -260,6 +261,24 @@ class Orchestrator:
         self.network_scanner.scan()
         self.shared_data.bjornstatustext2 = ""
         while not self.shared_data.orchestrator_should_exit:
+            # OOM Watcher Check: Pause scanning if free memory is critically low
+            try:
+                mem = psutil.virtual_memory()
+                free_mb = mem.available / (1024 * 1024)
+                if free_mb < 50:  # 50MB threshold for Pi Zero W
+                    if not self.shared_data.low_memory_mode:
+                        self.shared_data.low_memory_mode = True
+                        self.shared_data.bjornstatustext2 = "[PAUSED: LOW MEMORY]"
+                        logger.warning(f"Memory critically low ({free_mb:.1f}MB). Pausing orchestrator.")
+                    time.sleep(5) # Check again in 5s without running actions
+                    continue
+                else:
+                    if self.shared_data.low_memory_mode:
+                        self.shared_data.low_memory_mode = False
+                        self.shared_data.bjornstatustext2 = ""
+                        logger.info("Memory recovered. Resuming orchestrator.")
+            except Exception as e:
+                logger.error(f"OOM monitor error: {e}")
             current_data = self.shared_data.read_data()
             any_action_executed = False
             action_executed_status = None
