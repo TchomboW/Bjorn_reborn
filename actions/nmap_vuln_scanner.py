@@ -3,7 +3,7 @@
 # It scans for vulnerabilities on various ports and saves the results and progress.
 
 import os
-import pandas as pd
+import csv
 import subprocess
 import logging
 from datetime import datetime
@@ -38,7 +38,7 @@ class NmapVulnScanner:
         """
         if not os.path.exists(self.summary_file):
             os.makedirs(self.shared_data.vulnerabilities_dir, exist_ok=True)
-            df = pd.DataFrame(columns=["IP", "Hostname", "MAC Address", "Port", "Vulnerabilities"])
+            df = []
             df.to_csv(self.summary_file, index=False)
 
     def update_summary_file(self, ip, hostname, mac, port, vulnerabilities):
@@ -47,13 +47,10 @@ class NmapVulnScanner:
         """
         try:
             # Read existing data
-            df = pd.read_csv(self.summary_file)
+            df = [dict(row) for row in csv.DictReader(open(self.summary_file))]
             
             # Create new data entry
-            new_data = pd.DataFrame([{"IP": ip, "Hostname": hostname, "MAC Address": mac, "Port": port, "Vulnerabilities": vulnerabilities}])
-            
-            # Append new data
-            df = pd.concat([df, new_data], ignore_index=True)
+            pass
             
             # Remove duplicates based on IP and MAC Address, keeping the last occurrence
             df.drop_duplicates(subset=["IP", "MAC Address"], keep='last', inplace=True)
@@ -147,9 +144,19 @@ class NmapVulnScanner:
         """
         try:
             final_summary_file = os.path.join(self.shared_data.vulnerabilities_dir, "final_vulnerability_summary.csv")
-            df = pd.read_csv(self.summary_file)
-            summary_data = df.groupby(["IP", "Hostname", "MAC Address"])["Vulnerabilities"].apply(lambda x: "; ".join(set("; ".join(x).split("; ")))).reset_index()
-            summary_data.to_csv(final_summary_file, index=False)
+            df = [dict(row) for row in csv.DictReader(open(self.summary_file))]
+            # Group by IP, Hostname, MAC Address and aggregate vulnerabilities
+            seen = {}
+            for r in df:
+                key = (r.get('IP'), r.get('Hostname'), r.get('MAC Address'))
+                if key not in seen:
+                    seen[key] = set()
+                seen[key].update(r.get('Vulnerabilities', '').split('; '))
+            with open(final_summary_file, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=['IP', 'Hostname', 'MAC Address', 'Vulnerabilities'])
+                writer.writeheader()
+                for (ip, host, mac), vulns in seen.items():
+                    writer.writerow({'IP': ip, 'Hostname': host, 'MAC Address': mac, 'Vulnerabilities': '; '.join(vulns)})
             logger.info(f"Summary saved to {final_summary_file}")
         except Exception as e:
             logger.error(f"Error saving summary: {e}")

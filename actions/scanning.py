@@ -5,7 +5,7 @@
 import os
 import threading
 import csv
-import pandas as pd
+import csv
 import socket
 import netifaces
 import time
@@ -66,7 +66,7 @@ class NetworkScanner:
                 if not os.path.exists(netkbfile):
                     with open(netkbfile, 'w', newline='') as file:
                         writer = csv.writer(file)
-                        writer.writerow(['MAC Address', 'IPs', 'Hostnames', 'Alive', 'Ports'])
+                        writer.writerow([])
             except Exception as e:
                 self.logger.error(f"Error in check_if_csv_scan_file_exists: {e}")
 
@@ -209,7 +209,7 @@ class NetworkScanner:
                 # Remove entries with multiple IP addresses for a single MAC address
                 netkb_entries = {mac: data for mac, data in netkb_entries.items() if len(data['IPs']) == 1}
 
-                sorted_netkb_entries = sorted(netkb_entries.items(), key=lambda x: self.ip_key(sorted(x[1]['IPs'])[0]))
+                sorted_netkb_entries = sorted(netkb_entries.items(), key=lambda x: self.ip_key(sorted(x[1]['IPs']))[0])
 
                 with open(netkbfile, 'w', newline='') as file:
                     writer = csv.writer(file)
@@ -363,7 +363,7 @@ class NetworkScanner:
                 try:
                     with open(self.csv_scan_file, 'a', newline='') as file:
                         writer = csv.writer(file)
-                        writer.writerow(['IP', 'Hostname', 'MAC Address'])
+                        writer.writerow([])
                 except Exception as e:
                     self.outer_instance.logger.error(f"Error in scan_network_and_write_to_csv (initial write): {e}")
 
@@ -389,7 +389,7 @@ class NetworkScanner:
                     with self.outer_instance.lock:
                         with open(self.csv_scan_file, 'a', newline='') as file:
                             writer = csv.writer(file)
-                            writer.writerow([ip, hostname, mac])
+                            writer.writerow([])
                             self.ip_hostname_list.append((ip, hostname, mac))
             except Exception as e:
                 self.outer_instance.logger.error(f"Error getting MAC address or writing to file for IP {ip}: {e}")
@@ -435,7 +435,7 @@ class NetworkScanner:
             Reads the source CSV file into a DataFrame.
             """
             try:
-                self.df = pd.read_csv(self.source_csv_path)
+                self.df = [dict(row) for row in csv.DictReader(open(self.source_csv_path))]
             except Exception as e:
                 self.logger.error(f"Error in read_csv: {e}")
 
@@ -468,11 +468,15 @@ class NetworkScanner:
             """
             try:
                 if os.path.exists(self.output_csv_path):
-                    results_df = pd.read_csv(self.output_csv_path)
-                    results_df.loc[0, 'Total Open Ports'] = self.total_open_ports
-                    results_df.loc[0, 'Alive Hosts Count'] = self.alive_hosts_count
-                    results_df.loc[0, 'All Known Hosts Count'] = self.all_known_hosts_count
-                    results_df.to_csv(self.output_csv_path, index=False)
+                    results_df = [dict(row) for row in csv.DictReader(open(self.output_csv_path))]
+                    if results_df:
+                        results_df[0]['Total Open Ports'] = self.total_open_ports
+                        results_df[0]['Alive Hosts Count'] = self.alive_hosts_count
+                        results_df[0]['All Known Hosts Count'] = self.all_known_hosts_count
+                        with open(self.output_csv_path, 'w', newline='') as f:
+                            writer = csv.DictWriter(f, fieldnames=results_df[0].keys())
+                            writer.writeheader()
+                            writer.writerows(results_df)
                 else:
                     self.logger.error(f"File {self.output_csv_path} does not exist.")
             except Exception as e:
@@ -542,12 +546,12 @@ class NetworkScanner:
             with self.lock:
                 with open(csv_result_file, 'w', newline='') as file:
                     writer = csv.writer(file)
-                    writer.writerow(["IP", "Hostname", "Alive", "MAC Address"] + [str(port) for port in all_ports])
+                    writer.writerow([])
                     for ip, ports, hostname, mac in zip(ip_data.ip_list, open_ports.values(), ip_data.hostname_list, ip_data.mac_list):
                         if self.blacklistcheck and (mac in self.mac_scan_blacklist or ip in self.ip_scan_blacklist):
                             continue
                         alive = '1' if mac in alive_macs else '0'
-                        writer.writerow([ip, hostname, alive, mac] + [str(port) if port in ports else '' for port in all_ports])
+                        writer.writerow([])
 
             self.update_netkb(netkbfile, netkb_data, alive_macs)
 

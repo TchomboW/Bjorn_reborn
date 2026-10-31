@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 import threading
 import logging
 import time
@@ -50,11 +50,10 @@ class FTPConnector:
     """
     def __init__(self, shared_data):
         self.shared_data = shared_data
-        self.scan = pd.read_csv(shared_data.netkbfile)
+        self.scan = [dict(row) for row in csv.DictReader(open(shared_data.netkbfile))]
 
-        if "Ports" not in self.scan.columns:
-            self.scan["Ports"] = None
-        self.scan = self.scan[self.scan["Ports"].str.contains("21", na=False)]
+        
+        self.scan = [r for r in self.scan if r.get("Ports") and "21" in r["Ports"]]
 
         self.users = open(shared_data.usersfile, "r").read().splitlines()
         self.passwords = open(shared_data.passwordsfile, "r").read().splitlines()
@@ -73,11 +72,10 @@ class FTPConnector:
         """
         Load the netkb file and filter it for FTP ports.
         """
-        self.scan = pd.read_csv(self.shared_data.netkbfile)
+        self.scan = [dict(row) for row in csv.DictReader(open(self.shared_data.netkbfile))]
 
-        if "Ports" not in self.scan.columns:
-            self.scan["Ports"] = None
-        self.scan = self.scan[self.scan["Ports"].str.contains("21", na=False)]
+        
+        self.scan = [r for r in self.scan if r.get("Ports") and "21" in r["Ports"]]
 
     def ftp_connect(self, adresse_ip, user, password):
         """
@@ -158,7 +156,7 @@ class FTPConnector:
         """
         Saves the results of successful FTP connections to a CSV file.
         """
-        df = pd.DataFrame(self.results, columns=['MAC Address', 'IP Address', 'Hostname', 'User', 'Password', 'Port'])
+        results_df = self.results
         df.to_csv(self.ftpfile, index=False, mode='a', header=not os.path.exists(self.ftpfile))
         self.results = []  # Reset temporary results after saving
 
@@ -166,9 +164,13 @@ class FTPConnector:
         """
         Removes duplicate entries from the results file.
         """
-        df = pd.read_csv(self.ftpfile)
-        df.drop_duplicates(inplace=True)
-        df.to_csv(self.ftpfile, index=False)
+        df = [dict(row) for row in csv.DictReader(open(self.ftpfile))]
+        
+        import csv
+        with open(self.ftpfile, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=df[0].keys())
+            writer.writeheader()
+            writer.writerows(df)
 
 if __name__ == "__main__":
     shared_data = SharedData()

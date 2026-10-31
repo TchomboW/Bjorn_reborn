@@ -3,7 +3,7 @@ rdp_connector.py - This script performs a brute force attack on RDP services (po
 """
 
 import os
-import pandas as pd
+import csv
 import subprocess
 import threading
 import logging
@@ -55,11 +55,10 @@ class RDPConnector:
     """
     def __init__(self, shared_data):
         self.shared_data = shared_data
-        self.scan = pd.read_csv(shared_data.netkbfile)
+        self.scan = [dict(row) for row in csv.DictReader(open(shared_data.netkbfile))]
 
-        if "Ports" not in self.scan.columns:
-            self.scan["Ports"] = None
-        self.scan = self.scan[self.scan["Ports"].str.contains("3389", na=False)]
+        
+        self.scan = [r for r in self.scan if r.get("Ports") and "3389" in r["Ports"]]
 
         self.users = open(shared_data.usersfile, "r").read().splitlines()
         self.passwords = open(shared_data.passwordsfile, "r").read().splitlines()
@@ -79,11 +78,10 @@ class RDPConnector:
         """
         Load the netkb file and filter it for RDP ports.
         """
-        self.scan = pd.read_csv(self.shared_data.netkbfile)
+        self.scan = [dict(row) for row in csv.DictReader(open(self.shared_data.netkbfile))]
 
-        if "Ports" not in self.scan.columns:
-            self.scan["Ports"] = None
-        self.scan = self.scan[self.scan["Ports"].str.contains("3389", na=False)]
+        
+        self.scan = [r for r in self.scan if r.get("Ports") and "3389" in r["Ports"]]
 
     def rdp_connect(self, adresse_ip, user, password):
         """
@@ -165,7 +163,7 @@ class RDPConnector:
         """
         Save the results of successful connection attempts to a CSV file.
         """
-        df = pd.DataFrame(self.results, columns=['MAC Address', 'IP Address', 'Hostname', 'User', 'Password', 'Port'])
+        results_df = self.results
         df.to_csv(self.rdpfile, index=False, mode='a', header=not os.path.exists(self.rdpfile))
         self.results = []  # Reset temporary results after saving
 
@@ -173,9 +171,13 @@ class RDPConnector:
         """
         Remove duplicate entries from the results CSV file.
         """
-        df = pd.read_csv(self.rdpfile)
-        df.drop_duplicates(inplace=True)
-        df.to_csv(self.rdpfile, index=False)
+        df = [dict(row) for row in csv.DictReader(open(self.rdpfile))]
+        
+        import csv
+        with open(self.rdpfile, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=df[0].keys())
+            writer.writeheader()
+            writer.writerows(df)
 
 if __name__ == "__main__":
     shared_data = SharedData()

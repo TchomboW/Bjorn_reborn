@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 import logging
 import time
 from sqlalchemy import create_engine
@@ -98,9 +98,9 @@ class StealDataSQL:
                 sqlfile = self.shared_data.sqlfile
                 credentials = []
                 if os.path.exists(sqlfile):
-                    df = pd.read_csv(sqlfile)
-                    # Filtrer les credentials pour l'IP spécifique
-                    ip_credentials = df[df['IP Address'] == ip]
+                    df = [dict(row) for row in csv.DictReader(open(sqlfile))]
+                    # Filter credentials for specific IP
+                    ip_credentials = []
                     # Créer des tuples (username, password, database)
                     credentials = [(row['User'], row['Password'], row['Database']) 
                                  for _, row in ip_credentials.iterrows()]

@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+import csv
 import pymysql
 import threading
 import logging
@@ -66,10 +66,9 @@ class SQLConnector:
         """
         Load the scan file and filter it for SQL ports.
         """
-        self.scan = pd.read_csv(self.shared_data.netkbfile)
-        if "Ports" not in self.scan.columns:
-            self.scan["Ports"] = None
-        self.scan = self.scan[self.scan["Ports"].str.contains("3306", na=False)]
+        self.scan = [dict(row) for row in csv.DictReader(open(self.shared_data.netkbfile))]
+        
+        self.scan = [r for r in self.scan if r.get("Ports") and "3306" in r["Ports"]]
 
     def sql_connect(self, adresse_ip, user, password):
         """
@@ -171,7 +170,7 @@ class SQLConnector:
         """
         Save the results of successful connection attempts to a CSV file.
         """
-        df = pd.DataFrame(self.results, columns=['IP Address', 'User', 'Password', 'Port', 'Database'])
+        df = []
         df.to_csv(self.sqlfile, index=False, mode='a', header=not os.path.exists(self.sqlfile))
         logger.info(f"Saved results to {self.sqlfile}")
         self.results = []
@@ -180,9 +179,14 @@ class SQLConnector:
         """
         Remove duplicate entries from the results CSV file.
         """
-        df = pd.read_csv(self.sqlfile)
-        df.drop_duplicates(inplace=True)
-        df.to_csv(self.sqlfile, index=False)
+        df = [dict(row) for row in csv.DictReader(open(self.sqlfile))]
+        seen = set()
+        df = [r for r in df if tuple(r.items()) not in seen and not seen.add(tuple(r.items()))]
+        import csv
+        with open(self.sqlfile, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=df[0].keys() if df else [])
+            writer.writeheader()
+            writer.writerows(df)
 
 if __name__ == "__main__":
     shared_data = SharedData()

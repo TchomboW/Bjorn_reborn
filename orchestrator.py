@@ -20,6 +20,8 @@ import time
 import logging
 import sys
 import threading
+import concurrent.futures
+self.loop = asyncio.get_event_loop()
 from datetime import datetime, timedelta
 from actions.nmap_vuln_scanner import NmapVulnScanner
 from init_shared import shared_data

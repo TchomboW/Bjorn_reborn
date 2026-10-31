@@ -4,7 +4,7 @@ and logs the successful login attempts.
 """
 
 import os
-import pandas as pd
+import csv
 import telnetlib
 import threading
 import logging
@@ -54,11 +54,10 @@ class TelnetConnector:
     """
     def __init__(self, shared_data):
         self.shared_data = shared_data
-        self.scan = pd.read_csv(shared_data.netkbfile)
+        self.scan = [dict(row) for row in csv.DictReader(open(shared_data.netkbfile))]
 
-        if "Ports" not in self.scan.columns:
-            self.scan["Ports"] = None
-        self.scan = self.scan[self.scan["Ports"].str.contains("23", na=False)]
+        
+        self.scan = [r for r in self.scan if r.get("Ports") and "23" in r["Ports"]]
 
         self.users = open(shared_data.usersfile, "r").read().splitlines()
         self.passwords = open(shared_data.passwordsfile, "r").read().splitlines()
@@ -78,11 +77,10 @@ class TelnetConnector:
         """
         Load the netkb file and filter it for Telnet ports.
         """
-        self.scan = pd.read_csv(self.shared_data.netkbfile)
+        self.scan = [dict(row) for row in csv.DictReader(open(self.shared_data.netkbfile))]
 
-        if "Ports" not in self.scan.columns:
-            self.scan["Ports"] = None
-        self.scan = self.scan[self.scan["Ports"].str.contains("23", na=False)]
+        
+        self.scan = [r for r in self.scan if r.get("Ports") and "23" in r["Ports"]]
 
     def telnet_connect(self, adresse_ip, user, password):
         """
@@ -173,7 +171,7 @@ class TelnetConnector:
         """
         Save the results of successful login attempts to a CSV file.
         """
-        df = pd.DataFrame(self.results, columns=['MAC Address', 'IP Address', 'Hostname', 'User', 'Password', 'Port'])
+        results_df = self.results
         df.to_csv(self.telnetfile, index=False, mode='a', header=not os.path.exists(self.telnetfile))
         self.results = []  # Reset temporary results after saving
 
@@ -181,9 +179,13 @@ class TelnetConnector:
         """
         Remove duplicate entries from the results file.
         """
-        df = pd.read_csv(self.telnetfile)
-        df.drop_duplicates(inplace=True)
-        df.to_csv(self.telnetfile, index=False)
+        df = [dict(row) for row in csv.DictReader(open(self.telnetfile))]
+        
+        import csv
+        with open(self.telnetfile, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=df[0].keys())
+            writer.writeheader()
+            writer.writerows(df)
 
 if __name__ == "__main__":
     shared_data = SharedData()
