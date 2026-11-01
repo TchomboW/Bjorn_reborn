@@ -20,6 +20,12 @@ import signal
 import logging
 import time
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)), )
+dir_path = os.path.dirname(os.path.abspath(__file__))
+if dir_path not in sys.path:
+    sys.path.insert(0, os.path.join(dir_path, 'utils'))
+if os.path.join(dir_path, 'utils') not in sys.path:
+    sys.path.insert(0, os.path.join(dir_path, 'utils'))
 import subprocess
 from init_shared import shared_data
 from display import Display, handle_exit_display

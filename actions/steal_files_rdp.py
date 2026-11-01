@@ -3,6 +3,8 @@ steal_files_rdp.py - This script connects to remote RDP servers using provided c
 """
 
 import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils'))
 import subprocess
 import logging
 import time

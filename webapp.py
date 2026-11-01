@@ -5,6 +5,12 @@ import http.server
 import socketserver
 import logging
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)), )
+dir_path = os.path.dirname(os.path.abspath(__file__))
+if dir_path not in sys.path:
+    sys.path.insert(0, os.path.join(dir_path, 'utils'))
+if os.path.join(dir_path, 'utils') not in sys.path:
+    sys.path.insert(0, os.path.join(dir_path, 'utils'))
 import signal
 import os
 import gzip

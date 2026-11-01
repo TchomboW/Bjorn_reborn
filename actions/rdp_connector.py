@@ -3,6 +3,8 @@ rdp_connector.py - This script performs a brute force attack on RDP services (po
 """
 
 import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils'))
 import csv
 import subprocess
 import threading

@@ -3,6 +3,8 @@
 # The results are saved to CSV files and displayed using Rich for enhanced visualization.
 
 import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils'))
 import threading
 import csv
 import csv
