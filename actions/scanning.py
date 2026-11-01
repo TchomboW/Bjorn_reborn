@@ -45,7 +45,7 @@ class NetworkScanner:
         self.console = Console()
         self.lock = threading.Lock()
         self.currentdir = shared_data.currentdir
-        self.semaphore = threading.Semaphore(200)  # Limit the number of active threads to 20
+        self.semaphore = threading.Semaphore(8)  # Pi Zero W Optimization: Limit to 8 threads to prevent context-switch thrashing
         self.nm = nmap.PortScanner()  # Initialize nmap.PortScanner()
         self.running = False
 

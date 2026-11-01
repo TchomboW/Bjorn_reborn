@@ -20,10 +20,8 @@ import time
 import logging
 import sys
 import threading
-import asyncio
 import concurrent.futures
 import psutil
-self.loop = asyncio.get_event_loop()
 from datetime import datetime, timedelta
 from actions.nmap_vuln_scanner import NmapVulnScanner
 from init_shared import shared_data
@@ -169,10 +167,10 @@ class Orchestrator:
         try:
             logger.info(f"Executing action {action.action_name} for {ip}:{action.port}")
             self.shared_data.bjornstatustext2 = ip
-            loop = asyncio.get_event_loop()
-            result = loop.run_in_executor(
-                None, action.execute, ip, str(action.port), row, action_key
-            )
+            # Pi Zero W Constraint: Limit max_workers to 3 to prevent context-switch thrashing
+            # on the single 1GHz CPU and to save memory for the display/UI.
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                result = executor.submit(action.execute, ip, str(action.port), row, action_key).result()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             if result == 'success':
                 row[action_key] = f'success_{timestamp}'
